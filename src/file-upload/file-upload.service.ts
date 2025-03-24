@@ -4,6 +4,7 @@ import {v2 as cloudinary} from 'cloudinary'
 import * as fs from 'fs';
 import { resolve } from 'path';
 import { rejects } from 'assert';
+import { catchError } from 'rxjs';
 @Injectable()
 export class FileUploadService {
     constructor(private prisma:PrismaService){
@@ -27,8 +28,8 @@ export class FileUploadService {
                     url: uploadResult.secure_url
                 }
             })
-
-            // fs.unlinkSync(file.path);
+            //this will delte the file from local storage
+            fs.unlinkSync(file.path);
 
             return newnlySavedFile;
         } catch (error) {
@@ -51,5 +52,32 @@ export class FileUploadService {
                 }
             })
         })
+    }
+
+    async deleteFile(fileId:string){
+        try{
+        const file = await this.prisma.file.findUnique({
+            where : { id: fileId }
+        });
+
+        if(!file){
+            throw new Error(`File not foud with this fileId ${fileId}`);
+        }
+
+        await cloudinary.uploader.destroy(file.publicId);
+
+        await this.prisma.file.delete({
+            where : {id:fileId}
+        });
+
+        return {
+            message : `File deleted sucessfully ${fileId}`
+        }
+    }catch(error){
+        console.log(error);
+        throw new InternalServerErrorException('File upload failed.Please try again later !',);  
+
+        
+    }
     }
 }
