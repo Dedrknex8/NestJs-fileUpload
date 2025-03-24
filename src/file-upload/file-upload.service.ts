@@ -7,6 +7,7 @@ import { rejects } from 'assert';
 @Injectable()
 export class FileUploadService {
     constructor(private prisma:PrismaService){
+        //coludinary Configuration
         cloudinary.config({
             cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
             api_key : process.env.CLOUDINARY_CLOUD_API_KEY,
@@ -17,6 +18,8 @@ export class FileUploadService {
         try {
             
             const uploadResult = await this.uploadToCloudinary(file.path)
+
+            //Saving to DB
             const newnlySavedFile = await this.prisma.file.create({
                 data : {
                     filename : file.originalname,
@@ -25,7 +28,7 @@ export class FileUploadService {
                 }
             })
 
-            fs.unlinkSync(file.path);
+            // fs.unlinkSync(file.path);
 
             return newnlySavedFile;
         } catch (error) {
@@ -33,10 +36,11 @@ export class FileUploadService {
             if(file.path && fs.existsSync(file.path)){
                 fs.unlinkSync(file.path)
             }
-            throw new InternalServerErrorException('File upload failed.Please try again later !');
+            console.error(error);
+            throw new InternalServerErrorException('File upload failed.Please try again later !',);  
+            
         }
     }
-
     private uploadToCloudinary(filePath : string) : Promise<any> {
         return new Promise((resolve,reject)=>{
             cloudinary.uploader.upload(filePath,(error,result)=>{
